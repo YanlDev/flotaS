@@ -1,7 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Prisma schema - selcosiflota (Prisma 7)
+// URL de conexión configurada en prisma.config.ts
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +8,383 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// =============================================
+// ENUMS
+// =============================================
+
+enum RolUsuario {
+  admin
+  jefe_sucursal
+  visor
+
+  @@map("rol_usuario")
+}
+
+enum EstadoVehiculo {
+  operativo
+  parcialmente
+  fuera_de_servicio
+
+  @@map("estado_vehiculo")
+}
+
+enum TipoVehiculo {
+  moto
+  auto
+  camioneta
+  minivan
+  furgon
+  vehiculo_pesado
+  bus
+
+  @@map("tipo_vehiculo")
+}
+
+enum TransmisionTipo {
+  manual
+  automatico
+
+  @@map("transmision_tipo")
+}
+
+enum TraccionTipo {
+  fourbytwo @map("4x2")
+  fourbyfour @map("4x4")
+
+  @@map("traccion_tipo")
+}
+
+enum CombustibleTipo {
+  gasolina
+  diesel
+  glp
+  gnv
+  electrico
+  hibrido
+
+  @@map("combustible_tipo")
+}
+
+enum CategoriaLicencia {
+  A1
+  A2a
+  A2b
+  A3a
+  A3b
+  A3c
+  B
+  B2C
+  C
+  D
+  E
+
+  @@map("categoria_licencia")
+}
+
+enum TipoDocumento {
+  soat
+  revision_tecnica
+  tarjeta_propiedad
+  otro
+
+  @@map("tipo_documento")
+}
+
+enum CategoriaMantenimiento {
+  aceite_filtros
+  llantas
+  frenos
+  liquidos
+  bateria
+  alineacion_balanceo
+  suspension
+  transmision
+  electricidad
+  revision_general
+  otro
+
+  @@map("categoria_mantenimiento")
+}
+
+enum TipoMantenimiento {
+  preventivo
+  correctivo
+
+  @@map("tipo_mantenimiento")
+}
+
+enum CategoriaFoto {
+  frontal
+  posterior
+  lateral_der
+  lateral_izq
+  cabina
+  odometro
+  otro
+
+  @@map("categoria_foto")
+}
+
+// =============================================
+// MODELOS
+// =============================================
+
+model Sucursal {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre    String
+  ciudad    String
+  region    String?
+  activa    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  profiles     Profile[]
+  invitaciones Invitacion[]
+  vehiculos    Vehiculo[]
+  conductores  Conductor[]
+
+  @@map("sucursales")
+}
+
+model Profile {
+  id             String     @id @db.Uuid
+  nombreCompleto String     @map("nombre_completo")
+  email          String
+  rol            RolUsuario @default(jefe_sucursal)
+  sucursalId     String?    @map("sucursal_id") @db.Uuid
+  activo         Boolean    @default(true)
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  sucursal            Sucursal?    @relation(fields: [sucursalId], references: [id])
+  invitacionesCreadas Invitacion[] @relation("CreadoPor")
+  vehiculosCreados    Vehiculo[]   @relation("CreadoPor")
+  documentosSubidos   DocumentoVehicular[] @relation("SubidoPor")
+  conductoresCreados  Conductor[]  @relation("ConductorCreadoPor")
+  cargasRegistradas         CargaCombustible[] @relation("CargaRegistradaPor")
+  mantenimientosRegistrados Mantenimiento[]    @relation("MantenimientoRegistradoPor")
+  fotosSubidas              FotoVehiculo[]     @relation("FotoSubidaPor")
+  docsConductorSubidos      DocumentoConductor[] @relation("DocConductorSubidoPor")
+
+  @@map("profiles")
+}
+
+model Invitacion {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  token      String     @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email      String
+  rol        RolUsuario
+  sucursalId String?    @map("sucursal_id") @db.Uuid
+  creadoPor  String?    @map("creado_por") @db.Uuid
+  usado      Boolean    @default(false)
+  expiraEn   DateTime   @map("expira_en") @db.Timestamptz
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz
+
+  sucursal Sucursal? @relation(fields: [sucursalId], references: [id])
+  creador  Profile?  @relation("CreadoPor", fields: [creadoPor], references: [id])
+
+  @@map("invitaciones")
+}
+
+model Vehiculo {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  placa          String          @unique
+  sucursalId     String          @map("sucursal_id") @db.Uuid
+
+  // Datos básicos
+  tipo           TipoVehiculo
+  marca          String
+  modelo         String
+  anio           Int             @db.SmallInt
+  color          String?
+
+  // Datos técnicos — Tarjeta de Propiedad SUNARP
+  motor          String?         // Descripción del motor (ej: Cummins ISB 6.7)
+  numeroMotor    String?         @map("numero_motor")   // Nro motor de tarjeta
+  numeroChasis   String?         @map("numero_chasis")  // Nro chasis de tarjeta
+  numeroSerie    String?         @map("numero_serie")   // VIN
+
+  // Mecánica
+  transmision    TransmisionTipo?
+  traccion       TraccionTipo?
+  combustible    CombustibleTipo?
+
+  // Capacidades (para minivans, buses, pesados)
+  numAsientos       Int?   @db.SmallInt @map("num_asientos")
+  capacidadCargaKg  Int?   @map("capacidad_carga_kg")
+
+  // Operación
+  propietario    String?
+  kmActuales     Int?    @map("km_actuales")
+  zonaOperacion  String? @map("zona_operacion")
+  fechaAdquisicion DateTime? @map("fecha_adquisicion") @db.Date
+
+  // Conductor asignado (temporal hasta tabla conductores)
+  conductorNombre String? @map("conductor_nombre")
+  conductorTel    String? @map("conductor_tel")
+
+  // Estado
+  estado         EstadoVehiculo  @default(operativo)
+  problemaActivo String?         @map("problema_activo")
+  observaciones  String?
+  gps            Boolean         @default(false)
+
+  createdBy  String?  @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  sucursal    Sucursal @relation(fields: [sucursalId], references: [id])
+  creador     Profile? @relation("CreadoPor", fields: [createdBy], references: [id])
+  documentos      DocumentoVehicular[]
+  conductor       Conductor?
+  cargas          CargaCombustible[]
+  mantenimientos  Mantenimiento[]
+  fotos           FotoVehiculo[]
+
+  @@index([sucursalId])
+  @@index([estado])
+  @@index([placa])
+  @@map("vehiculos")
+}
+
+model Conductor {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombreCompleto      String            @map("nombre_completo")
+  dni                 String            @unique
+  telefono            String?
+  email               String?
+  licenciaCategoria   CategoriaLicencia @map("licencia_categoria")
+  licenciaNumero      String?           @map("licencia_numero")
+  licenciaVencimiento DateTime?         @map("licencia_vencimiento") @db.Date
+  activo              Boolean           @default(true)
+  sucursalId          String?           @map("sucursal_id") @db.Uuid
+  vehiculoId          String?           @unique @map("vehiculo_id") @db.Uuid
+  createdBy           String?           @map("created_by") @db.Uuid
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  sucursal   Sucursal? @relation(fields: [sucursalId], references: [id])
+  vehiculo   Vehiculo? @relation(fields: [vehiculoId], references: [id])
+  creador    Profile?  @relation("ConductorCreadoPor", fields: [createdBy], references: [id])
+  cargas     CargaCombustible[]
+  documentos DocumentoConductor[]
+
+  @@index([sucursalId])
+  @@map("conductores")
+}
+
+model DocumentoVehicular {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vehiculoId  String        @map("vehiculo_id") @db.Uuid
+  tipo        TipoDocumento
+  nombre      String
+  archivoKey  String        @map("archivo_key")
+  mimeType    String        @map("mime_type")
+  tamanoBytes Int?          @map("tamano_bytes")
+  vencimiento DateTime?     @db.Date
+  subidoPor   String?       @map("subido_por") @db.Uuid
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  vehiculo Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  subidor  Profile? @relation("SubidoPor", fields: [subidoPor], references: [id])
+
+  @@index([vehiculoId])
+  @@map("documentos_vehiculares")
+}
+
+model CargaCombustible {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vehiculoId      String          @map("vehiculo_id") @db.Uuid
+  conductorId     String?         @map("conductor_id") @db.Uuid
+  fecha           DateTime        @db.Date
+
+  // Medición en galones (estándar Perú)
+  galones         Decimal         @db.Decimal(8, 3)
+  precioPorGalon  Decimal         @map("precio_por_galon") @db.Decimal(8, 2)
+  totalSoles      Decimal         @map("total_soles") @db.Decimal(10, 2)
+  tipoCombustible CombustibleTipo @map("tipo_combustible")
+
+  // Odómetro para calcular rendimiento
+  odometroKm      Int             @map("odometro_km")
+
+  // Dónde se cargó
+  estacion        String?         // nombre del grifo
+  ciudad          String?
+
+  // Evidencia (Wasabi keys)
+  comprobanteKey  String?         @map("comprobante_key")
+  odometroFotoKey String?         @map("odometro_foto_key")
+
+  registradoPor   String?         @map("registrado_por") @db.Uuid
+  notas           String?
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  vehiculo    Vehiculo   @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  conductor   Conductor? @relation(fields: [conductorId], references: [id])
+  registrador Profile?   @relation("CargaRegistradaPor", fields: [registradoPor], references: [id])
+
+  @@index([vehiculoId])
+  @@index([fecha])
+  @@map("cargas_combustible")
+}
+
+model Mantenimiento {
+  id            String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vehiculoId    String                 @map("vehiculo_id") @db.Uuid
+  categoria     CategoriaMantenimiento
+  tipo          TipoMantenimiento
+  descripcion   String
+  fecha         DateTime               @db.Date
+  odometroKm    Int                    @map("odometro_km")
+  costoSoles    Decimal?               @map("costo_soles") @db.Decimal(10, 2)
+  taller        String?
+  proximoKm     Int?                   @map("proximo_km")
+  proximaFecha  DateTime?              @map("proxima_fecha") @db.Date
+  evidenciaKey  String?                @map("evidencia_key")
+  registradoPor String?                @map("registrado_por") @db.Uuid
+  notas         String?
+  createdAt     DateTime               @default(now()) @map("created_at") @db.Timestamptz
+
+  vehiculo    Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  registrador Profile? @relation("MantenimientoRegistradoPor", fields: [registradoPor], references: [id])
+
+  @@index([vehiculoId])
+  @@index([fecha])
+  @@map("mantenimientos")
+}
+
+model FotoVehiculo {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vehiculoId  String        @map("vehiculo_id") @db.Uuid
+  key         String                              // Wasabi S3 key
+  categoria   CategoriaFoto @default(otro)
+  descripcion String?                             // Solo para categoria "otro"
+  subidoPor   String?       @map("subido_por") @db.Uuid
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  vehiculo Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  subidor  Profile? @relation("FotoSubidaPor", fields: [subidoPor], references: [id])
+
+  @@index([vehiculoId])
+  @@map("fotos_vehiculos")
+}
+
+model DocumentoConductor {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conductorId String    @map("conductor_id") @db.Uuid
+  nombre      String
+  archivoKey  String    @map("archivo_key")
+  mimeType    String    @map("mime_type")
+  tamanoBytes Int?      @map("tamano_bytes")
+  vencimiento DateTime? @db.Date
+  subidoPor   String?   @map("subido_por") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  conductor Conductor @relation(fields: [conductorId], references: [id], onDelete: Cascade)
+  subidor   Profile?  @relation("DocConductorSubidoPor", fields: [subidoPor], references: [id])
+
+  @@index([conductorId])
+  @@map("documentos_conductores")
 }
