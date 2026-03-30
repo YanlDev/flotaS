@@ -3,6 +3,10 @@ import { getProfile } from "@/lib/get-profile";
 import { deleteFile } from "@/lib/wasabi";
 import { NextRequest, NextResponse } from "next/server";
 
+function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string; docId: string }> }
@@ -16,6 +20,10 @@ export async function DELETE(
   }
 
   const { id: conductorId, docId } = await params;
+
+  if (!isValidUUID(conductorId) || !isValidUUID(docId)) {
+    return NextResponse.json({ error: "ID inválido" }, { status: 404 });
+  }
 
   const conductor = await prisma.conductor.findUnique({ where: { id: conductorId } });
   if (!conductor) return NextResponse.json({ error: "Conductor no encontrado" }, { status: 404 });

@@ -6,6 +6,10 @@ import { NextRequest, NextResponse } from "next/server";
 const MIME_PERMITIDOS = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
+function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 // GET — lista documentos del conductor con signed URLs
 export async function GET(
   _req: NextRequest,

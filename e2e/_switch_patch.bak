@@ -1,0 +1,27 @@
+  // ── UPDATE: toggle estado ──────────────────────────────────────────────────
+
+  test('UPDATE — Admin cambia estado del conductor (switch Activo/Inactivo)', async ({ page }) => {
+    await login(page, ADMIN.email, ADMIN.password);
+    if (!conductorUrl) conductorUrl = await crearConductor(page, `${DNI}A`);
+
+    // Leer el estado actual desde el detalle
+    await page.goto(conductorUrl);
+    const badgeAntes = page.locator('[data-slot="badge"]').filter({ hasText: /^(Activo|Inactivo)$/ }).first();
+    await expect(badgeAntes).toBeVisible({ timeout: 8_000 });
+    const textoAntes = await badgeAntes.textContent();
+
+    // Ir al formulario de edición y cambiar el switch
+    await page.goto(`${conductorUrl}/editar`);
+    const switchEl = page.locator('[data-slot="switch"]');
+    await expect(switchEl).toBeVisible({ timeout: 8_000 });
+    await switchEl.click();
+
+    await page.getByRole('button', { name: /Guardar cambios/i }).click();
+    await expect(page).toHaveURL(conductorUrl, { timeout: 15_000 });
+
+    // El badge debe mostrar el estado contrario al que había antes
+    const textoEsperado = textoAntes?.trim() === 'Activo' ? 'Inactivo' : 'Activo';
+    await expect(
+      page.locator('[data-slot="badge"]').filter({ hasText: textoEsperado }).first()
+    ).toBeVisible({ timeout: 8_000 });
+  });

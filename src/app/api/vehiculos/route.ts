@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
 
   const vehiculos = await prisma.vehiculo.findMany({
     where: {
+      deletedAt: null,
       ...(sucursalFiltro && { sucursalId: sucursalFiltro }),
       ...(estado && { estado }),
       ...(tipo && { tipo }),

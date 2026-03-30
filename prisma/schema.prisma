@@ -231,9 +231,10 @@ model Vehiculo {
   observaciones  String?
   gps            Boolean         @default(false)
 
-  createdBy  String?  @map("created_by") @db.Uuid
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdBy  String?   @map("created_by") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz
 
   sucursal    Sucursal @relation(fields: [sucursalId], references: [id])
   creador     Profile? @relation("CreadoPor", fields: [createdBy], references: [id])
@@ -264,6 +265,7 @@ model Conductor {
   createdBy           String?           @map("created_by") @db.Uuid
   createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt           DateTime?         @map("deleted_at") @db.Timestamptz
 
   sucursal   Sucursal? @relation(fields: [sucursalId], references: [id])
   vehiculo   Vehiculo? @relation(fields: [vehiculoId], references: [id])

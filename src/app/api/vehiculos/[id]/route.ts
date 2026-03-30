@@ -2,6 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+// Valida que el string tenga formato UUID válido para PostgreSQL
+function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 async function getProfile() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -21,8 +26,12 @@ export async function GET(
 
   const { id } = await params;
 
+  if (!isValidUUID(id)) {
+    return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 });
+  }
+
   const vehiculo = await prisma.vehiculo.findUnique({
-    where: { id },
+    where: { id, deletedAt: null },
     include: {
       sucursal: { select: { id: true, nombre: true, ciudad: true } },
       creador: { select: { nombreCompleto: true } },
@@ -59,7 +68,12 @@ export async function PUT(
   }
 
   const { id } = await params;
-  const vehiculo = await prisma.vehiculo.findUnique({ where: { id } });
+
+  if (!isValidUUID(id)) {
+    return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 });
+  }
+
+  const vehiculo = await prisma.vehiculo.findUnique({ where: { id, deletedAt: null } });
 
   if (!vehiculo) {
     return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 });
@@ -123,7 +137,7 @@ export async function PUT(
   }
 }
 
-// DELETE — eliminar vehículo (solo admin)
+// DELETE — soft delete de vehículo (solo admin)
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -135,12 +149,20 @@ export async function DELETE(
 
   const { id } = await params;
 
-  const vehiculo = await prisma.vehiculo.findUnique({ where: { id } });
+  if (!isValidUUID(id)) {
+    return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 });
+  }
+
+  const vehiculo = await prisma.vehiculo.findUnique({ where: { id, deletedAt: null } });
   if (!vehiculo) {
     return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 });
   }
 
-  await prisma.vehiculo.delete({ where: { id } });
+  // Soft delete: marcar como eliminado sin borrar el historial
+  await prisma.vehiculo.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  });
 
   return NextResponse.json({ success: true });
 }

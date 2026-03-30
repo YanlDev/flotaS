@@ -1,3 +1,8 @@
+/**
+ * DEPRECATED — Duplica la funcionalidad de documentos-conductor-panel.tsx.
+ * La página /conductores/[id]/documentos usa DocumentosConductorPanel.
+ * Mantener para no romper el árbol de módulos. Eliminar en próximo sprint.
+ */
 "use client";
 
 import { useState, useEffect, useRef } from "react";

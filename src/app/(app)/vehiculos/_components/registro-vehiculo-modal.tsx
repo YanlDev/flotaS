@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Plus, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Sucursal {
   id: string;
@@ -58,7 +59,8 @@ export function RegistroVehiculoModal({ sucursales, conductoresDisponibles, rol 
   // we can use a controlled state or bypass strict native validation.
   // Actually, to make it robust across steps without a complex library, we can just manage a few key states for validation.
   
-  const nextStep = () => {
+  const nextStep = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     // Basic validation logic for step 1
     if (step < 3) setStep(step + 1);
   };
@@ -382,9 +384,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className="space-y-1">
+    <div className={cn("space-y-1", className)}>
       <Label className="text-xs text-muted-foreground font-medium">{label}</Label>
       {children}
     </div>
