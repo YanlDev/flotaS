@@ -15,7 +15,7 @@ import {
 import {
   Wrench, Plus, Trash2, ExternalLink, AlertTriangle,
   CheckCircle, Clock, Fuel, Zap, Settings, Disc,
-  Battery, AlignCenter, ChevronDown, ChevronUp,
+  Battery, AlignCenter, ChevronDown, ChevronUp, Pencil, X,
 } from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -101,10 +101,12 @@ export function MantenimientoPanel({ vehiculoId, kmActuales, puedeEditar }: Prop
   const [mantenimientos, setMantenimientos] = useState<Mantenimiento[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Mantenimiento | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Mantenimiento | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [quitarEvidencia, setQuitarEvidencia] = useState(false);
 
   // Form fields
   const [categoria, setCategoria] = useState("aceite_filtros");
@@ -132,6 +134,25 @@ export function MantenimientoPanel({ vehiculoId, kmActuales, puedeEditar }: Prop
     setOdometroKm(kmActuales?.toString() ?? ""); setCostoSoles("");
     setTaller(""); setProximoKm(""); setProximaFecha("");
     setNotas(""); setEvidenciaFile(null); setFormError(null);
+    setEditTarget(null); setQuitarEvidencia(false);
+  }
+
+  function openEdit(m: Mantenimiento) {
+    setEditTarget(m);
+    setCategoria(m.categoria);
+    setTipo(m.tipo);
+    setDescripcion(m.descripcion);
+    setFecha(m.fecha);
+    setOdometroKm(m.odometroKm.toString());
+    setCostoSoles(m.costoSoles != null ? m.costoSoles.toString() : "");
+    setTaller(m.taller ?? "");
+    setProximoKm(m.proximoKm != null ? m.proximoKm.toString() : "");
+    setProximaFecha(m.proximaFecha ?? "");
+    setNotas(m.notas ?? "");
+    setEvidenciaFile(null);
+    setQuitarEvidencia(false);
+    setFormError(null);
+    setModalOpen(true);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -151,11 +172,14 @@ export function MantenimientoPanel({ vehiculoId, kmActuales, puedeEditar }: Prop
     if (proximaFecha) fd.append("proximaFecha", proximaFecha);
     if (notas) fd.append("notas", notas);
     if (evidenciaFile) fd.append("evidencia", evidenciaFile);
+    if (quitarEvidencia) fd.append("quitarEvidencia", "1");
 
     try {
-      const res = await fetch(`/api/vehiculos/${vehiculoId}/mantenimientos`, {
-        method: "POST", body: fd,
-      });
+      const isEdit = !!editTarget;
+      const res = await fetch(
+        isEdit ? `/api/mantenimientos/${editTarget.id}` : `/api/vehiculos/${vehiculoId}/mantenimientos`,
+        { method: isEdit ? "PATCH" : "POST", body: fd }
+      );
       const json = await res.json() as { error?: string };
       if (!res.ok) { setFormError(json.error ?? "Error al guardar"); return; }
       setModalOpen(false);
@@ -283,7 +307,7 @@ export function MantenimientoPanel({ vehiculoId, kmActuales, puedeEditar }: Prop
                     {m.notas && (
                       <p className="text-xs text-muted-foreground bg-muted rounded px-3 py-2">{m.notas}</p>
                     )}
-                    <div className="flex gap-2 items-center pt-1">
+                    <div className="flex gap-2 items-center pt-1 flex-wrap">
                       {m.evidenciaUrl && (
                         <a href={m.evidenciaUrl} target="_blank" rel="noopener noreferrer">
                           <Button variant="outline" size="sm">
@@ -292,13 +316,21 @@ export function MantenimientoPanel({ vehiculoId, kmActuales, puedeEditar }: Prop
                         </a>
                       )}
                       {puedeEditar && (
-                        <Button
-                          variant="ghost" size="sm"
-                          className="text-destructive hover:text-destructive ml-auto"
-                          onClick={() => setDeleteTarget(m)}
-                        >
-                          <Trash2 size={13} className="mr-1" />Eliminar
-                        </Button>
+                        <>
+                          <Button
+                            variant="outline" size="sm"
+                            onClick={() => openEdit(m)}
+                          >
+                            <Pencil size={12} className="mr-1.5" />Editar
+                          </Button>
+                          <Button
+                            variant="ghost" size="sm"
+                            className="text-destructive hover:text-destructive ml-auto"
+                            onClick={() => setDeleteTarget(m)}
+                          >
+                            <Trash2 size={13} className="mr-1" />Eliminar
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -309,11 +341,11 @@ export function MantenimientoPanel({ vehiculoId, kmActuales, puedeEditar }: Prop
         </div>
       )}
 
-      {/* ── Modal registrar servicio ────────────────────── */}
+      {/* ── Modal registrar / editar servicio ──────────── */}
       <Dialog open={modalOpen} onOpenChange={(o) => { if (!o) { setModalOpen(false); resetForm(); } }}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Registrar servicio</DialogTitle>
+            <DialogTitle>{editTarget ? "Editar servicio" : "Registrar servicio"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -386,12 +418,27 @@ export function MantenimientoPanel({ vehiculoId, kmActuales, puedeEditar }: Prop
               </div>
 
               <Field label="Evidencia (foto/PDF)" className="col-span-2">
-                <Input
-                  type="file" accept="image/*,application/pdf"
-                  onChange={(e) => setEvidenciaFile(e.target.files?.[0] ?? null)}
-                  className="text-sm"
-                />
+                {editTarget?.evidenciaUrl && !quitarEvidencia ? (
+                  <div className="flex items-center gap-2">
+                    <a href={editTarget.evidenciaUrl} target="_blank" rel="noopener noreferrer"
+                      className="text-xs text-primary underline flex items-center gap-1">
+                      <ExternalLink size={11} />Ver evidencia actual
+                    </a>
+                    <Button type="button" variant="ghost" size="sm"
+                      className="text-destructive h-6 px-2 text-xs"
+                      onClick={() => setQuitarEvidencia(true)}>
+                      <X size={11} className="mr-1" />Quitar
+                    </Button>
+                  </div>
+                ) : (
+                  <Input
+                    type="file" accept="image/*,application/pdf"
+                    onChange={(e) => setEvidenciaFile(e.target.files?.[0] ?? null)}
+                    className="text-sm"
+                  />
+                )}
                 {evidenciaFile && <p className="text-xs text-emerald-600 mt-1">{evidenciaFile.name}</p>}
+                {quitarEvidencia && <p className="text-xs text-amber-600 mt-1">Se quitará la evidencia al guardar</p>}
               </Field>
 
               <Field label="Notas" className="col-span-2">
@@ -410,7 +457,7 @@ export function MantenimientoPanel({ vehiculoId, kmActuales, puedeEditar }: Prop
                 Cancelar
               </Button>
               <Button type="submit" disabled={saving}>
-                {saving ? "Guardando..." : "Registrar"}
+                {saving ? "Guardando..." : editTarget ? "Guardar cambios" : "Registrar"}
               </Button>
             </DialogFooter>
           </form>

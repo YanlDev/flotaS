@@ -11,7 +11,7 @@ import { EliminarVehiculoButton } from "./_components/eliminar-vehiculo-button";
 import { FotosPanel } from "./_components/fotos-panel";
 import {
   FileText, Gauge, Fuel, Users, MapPin, Wifi, WifiOff, Phone,
-  User, AlertTriangle, ChevronRight, Wrench, ShieldCheck, Pencil,
+  User, AlertTriangle, ChevronRight, Wrench, ShieldCheck, Pencil, Building2,
 } from "lucide-react";
 
 // ─── Mapas de UI ─────────────────────────────────────────────────
@@ -49,7 +49,7 @@ export default async function VehiculoDetallePage({
 
   const { id } = await params;
 
-  const [vehiculo, documentos, fotosRaw] = await Promise.all([
+  const [vehiculo, documentos, fotosRaw, mantenimientos] = await Promise.all([
     prisma.vehiculo.findUnique({
       where: { id },
       include: {
@@ -66,6 +66,10 @@ export default async function VehiculoDetallePage({
       where: { vehiculoId: id },
       orderBy: { createdAt: "asc" },
       select: { id: true, key: true, categoria: true, descripcion: true, createdAt: true },
+    }),
+    prisma.mantenimiento.findMany({
+      where: { vehiculoId: id },
+      select: { categoria: true, proximoKm: true, proximaFecha: true },
     }),
   ]);
 
@@ -100,6 +104,31 @@ export default async function VehiculoDetallePage({
     return diff <= 30;
   });
 
+  const CATEGORIA_LABEL: Record<string, string> = {
+    aceite_filtros: "Aceite + Filtros", llantas: "Llantas", frenos: "Frenos",
+    liquidos: "Líquidos", bateria: "Batería", alineacion_balanceo: "Alineación",
+    suspension: "Suspensión", transmision: "Transmisión", electricidad: "Eléctrico",
+    revision_general: "Revisión general", otro: "Otro",
+  };
+
+  type AlertaMant = { categoria: string; tipo: "vencido" | "proximo"; detalle: string };
+  const alertasMant: AlertaMant[] = [];
+  for (const m of mantenimientos) {
+    const label = CATEGORIA_LABEL[m.categoria] ?? m.categoria;
+    if (m.proximoKm && vehiculo.kmActuales != null) {
+      const diff = m.proximoKm - vehiculo.kmActuales;
+      if (diff <= 0) alertasMant.push({ categoria: m.categoria, tipo: "vencido", detalle: `${label}: vencido por km (${m.proximoKm.toLocaleString("es-PE")} km)` });
+      else if (diff <= 1000) alertasMant.push({ categoria: m.categoria, tipo: "proximo", detalle: `${label}: faltan ${diff.toLocaleString("es-PE")} km` });
+    }
+    if (m.proximaFecha) {
+      const diffDias = Math.ceil((m.proximaFecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDias <= 0) alertasMant.push({ categoria: m.categoria, tipo: "vencido", detalle: `${label}: fecha de servicio vencida` });
+      else if (diffDias <= 30) alertasMant.push({ categoria: m.categoria, tipo: "proximo", detalle: `${label}: en ${diffDias} días` });
+    }
+  }
+  const mantVencidos = alertasMant.filter((a) => a.tipo === "vencido");
+  const mantProximos = alertasMant.filter((a) => a.tipo === "proximo");
+
   return (
     <div className="space-y-5">
 
@@ -118,6 +147,15 @@ export default async function VehiculoDetallePage({
               <p className="text-xs text-muted-foreground mt-0.5">
                 {TIPO_LABEL[vehiculo.tipo]} · {vehiculo.marca} {vehiculo.modelo} {vehiculo.anio}
               </p>
+              {(vehiculo.propietario || vehiculo.rucPropietario) && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <Building2 size={12} className="text-muted-foreground shrink-0" />
+                  <span className="text-xs font-medium text-foreground">{vehiculo.propietario ?? "—"}</span>
+                  {vehiculo.rucPropietario && (
+                    <span className="text-xs text-muted-foreground font-mono">· RUC {vehiculo.rucPropietario}</span>
+                  )}
+                </div>
+              )}
             </div>
             <Badge className={`${cfg.badge} text-xs`}>{cfg.label}</Badge>
           </div>
@@ -159,6 +197,36 @@ export default async function VehiculoDetallePage({
                 </p>
               </div>
               <ChevronRight size={14} className="text-amber-600 shrink-0" />
+            </div>
+          </Link>
+        )}
+
+        {/* ── ALERTA MANTENIMIENTO ─────────────────────────────── */}
+        {mantVencidos.length > 0 && (
+          <Link href={`/vehiculos/${id}/mantenimientos`}>
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-start gap-3 hover:bg-red-100 transition-colors cursor-pointer">
+              <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-red-800">
+                  {mantVencidos.length === 1 ? "1 mantenimiento vencido" : `${mantVencidos.length} mantenimientos vencidos`}
+                </p>
+                <p className="text-xs text-red-700 truncate">{mantVencidos.map((a) => a.detalle).join(" · ")}</p>
+              </div>
+              <ChevronRight size={14} className="text-red-500 shrink-0 mt-0.5" />
+            </div>
+          </Link>
+        )}
+        {mantVencidos.length === 0 && mantProximos.length > 0 && (
+          <Link href={`/vehiculos/${id}/mantenimientos`}>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3 hover:bg-amber-100 transition-colors cursor-pointer">
+              <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-amber-800">
+                  {mantProximos.length === 1 ? "1 mantenimiento próximo" : `${mantProximos.length} mantenimientos próximos`}
+                </p>
+                <p className="text-xs text-amber-700 truncate">{mantProximos.map((a) => a.detalle).join(" · ")}</p>
+              </div>
+              <ChevronRight size={14} className="text-amber-600 shrink-0 mt-0.5" />
             </div>
           </Link>
         )}
@@ -237,8 +305,8 @@ export default async function VehiculoDetallePage({
           <InfoCard title="Tarjeta de Propiedad — SUNARP" icon={<ShieldCheck size={15} className="text-blue-600" />}>
             <InfoRow label="Número de motor"  value={vehiculo.numeroMotor} />
             <InfoRow label="Número de chasis" value={vehiculo.numeroChasis} />
-            <InfoRow label="VIN / Nro. serie" value={vehiculo.numeroSerie} mono />
             <InfoRow label="Propietario"      value={vehiculo.propietario} />
+            <InfoRow label="RUC Propietario"  value={vehiculo.rucPropietario} mono />
           </InfoCard>
 
           <InfoCard title="Datos técnicos" icon={<Wrench size={15} className="text-violet-600" />}>

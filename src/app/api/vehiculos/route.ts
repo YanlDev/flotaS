@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     motor?: string;
     numeroMotor?: string;
     numeroChasis?: string;
-    numeroSerie?: string;
+    rucPropietario?: string;
     transmision?: TransmisionTipo;
     traccion?: TraccionTipo;
     combustible?: CombustibleTipo;
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
         motor: body.motor?.trim() || null,
         numeroMotor: body.numeroMotor?.trim() || null,
         numeroChasis: body.numeroChasis?.trim() || null,
-        numeroSerie: body.numeroSerie?.trim() || null,
+        rucPropietario: body.rucPropietario?.trim() || null,
         transmision: body.transmision || null,
         traccion: body.traccion || null,
         combustible: body.combustible || null,

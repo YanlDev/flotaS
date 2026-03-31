@@ -12,6 +12,7 @@ import {
   FileWarning,
   Building2,
   ArrowRight,
+  Wrench,
 } from "lucide-react";
 
 // ─── helpers ─────────────────────────────────────────────────────
@@ -40,6 +41,7 @@ export default async function DashboardPage() {
     sucursales,
     docsPorVencer,
     ultimosVehiculos,
+    mantenimientosRaw,
   ] = await Promise.all([
     // Total vehículos
     prisma.vehiculo.count({
@@ -80,6 +82,25 @@ export default async function DashboardPage() {
       take: 5,
       include: { sucursal: { select: { nombre: true } } },
     }),
+    // Mantenimientos con próximo programado
+    prisma.mantenimiento.findMany({
+      where: {
+        vehiculo: {
+          deletedAt: null,
+          ...(sucursalFiltro && { sucursalId: sucursalFiltro }),
+        },
+        OR: [
+          { proximoKm: { not: null } },
+          { proximaFecha: { not: null } },
+        ],
+      },
+      select: {
+        categoria: true,
+        proximoKm: true,
+        proximaFecha: true,
+        vehiculo: { select: { id: true, placa: true, kmActuales: true, sucursal: { select: { nombre: true } } } },
+      },
+    }),
   ]);
 
   const conteos: Record<EstadoVehiculo, number> = {
@@ -88,6 +109,48 @@ export default async function DashboardPage() {
     fuera_de_servicio: 0,
   };
   for (const g of porEstado) conteos[g.estado] = g._count.estado;
+
+  const CATEGORIA_LABEL: Record<string, string> = {
+    aceite_filtros: "Aceite + Filtros", llantas: "Llantas", frenos: "Frenos",
+    liquidos: "Líquidos", bateria: "Batería", alineacion_balanceo: "Alineación",
+    suspension: "Suspensión", transmision: "Transmisión", electricidad: "Eléctrico",
+    revision_general: "Revisión general", otro: "Otro",
+  };
+
+  type AlertaMant = {
+    vehiculoId: string; placa: string; sucursal: string;
+    categoria: string; tipo: "vencido" | "proximo"; detalle: string;
+  };
+
+  const alertasMantMap = new Map<string, AlertaMant>();
+  for (const m of mantenimientosRaw) {
+    const v = m.vehiculo;
+    const label = CATEGORIA_LABEL[m.categoria] ?? m.categoria;
+    const key = `${v.id}-${m.categoria}`;
+
+    if (m.proximoKm && v.kmActuales != null) {
+      const diff = m.proximoKm - v.kmActuales;
+      if (diff <= 0) {
+        alertasMantMap.set(key, { vehiculoId: v.id, placa: v.placa, sucursal: v.sucursal.nombre, categoria: m.categoria, tipo: "vencido", detalle: `${label} vencido por km` });
+        continue;
+      }
+      if (diff <= 1000) {
+        if (!alertasMantMap.has(key))
+          alertasMantMap.set(key, { vehiculoId: v.id, placa: v.placa, sucursal: v.sucursal.nombre, categoria: m.categoria, tipo: "proximo", detalle: `${label}: faltan ${diff.toLocaleString("es-PE")} km` });
+      }
+    }
+    if (m.proximaFecha) {
+      const diffDias = Math.ceil((m.proximaFecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDias <= 0) {
+        alertasMantMap.set(key, { vehiculoId: v.id, placa: v.placa, sucursal: v.sucursal.nombre, categoria: m.categoria, tipo: "vencido", detalle: `${label} vencido por fecha` });
+      } else if (diffDias <= 30 && !alertasMantMap.has(key)) {
+        alertasMantMap.set(key, { vehiculoId: v.id, placa: v.placa, sucursal: v.sucursal.nombre, categoria: m.categoria, tipo: "proximo", detalle: `${label}: en ${diffDias} días` });
+      }
+    }
+  }
+
+  const alertasMant = Array.from(alertasMantMap.values())
+    .sort((a, b) => (a.tipo === "vencido" ? -1 : 1) - (b.tipo === "vencido" ? -1 : 1));
 
   const TIPO_DOC: Record<string, string> = {
     soat: "SOAT", revision_tecnica: "Rev. Técnica",
@@ -187,6 +250,47 @@ export default async function DashboardPage() {
                   </li>
                 );
               })}
+            </ul>
+          )}
+        </div>
+
+        {/* ── Mantenimientos urgentes ─────────────────────── */}
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wrench size={16} className="text-violet-500" />
+              <h2 className="font-semibold text-sm">Mantenimientos urgentes</h2>
+            </div>
+            <span className="text-xs text-muted-foreground">≤1,000 km o 30 días</span>
+          </div>
+
+          {alertasMant.length === 0 ? (
+            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+              <CheckCircle2 size={28} className="mx-auto mb-2 text-emerald-500/50" />
+              Todos los servicios al día
+            </div>
+          ) : (
+            <ul className="divide-y">
+              {alertasMant.slice(0, 8).map((a, i) => (
+                <li key={i}>
+                  <Link
+                    href={`/vehiculos/${a.vehiculoId}/mantenimientos`}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors"
+                  >
+                    <div className={`h-2 w-2 rounded-full shrink-0 ${a.tipo === "vencido" ? "bg-red-500" : "bg-amber-500"}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        <span className="font-mono">{a.placa}</span> — {a.detalle}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{a.sucursal}</p>
+                    </div>
+                    <span className={`text-xs font-semibold shrink-0 ${a.tipo === "vencido" ? "text-red-600" : "text-amber-600"}`}>
+                      {a.tipo === "vencido" ? "Vencido" : "Próximo"}
+                    </span>
+                    <ArrowRight size={13} className="text-muted-foreground shrink-0" />
+                  </Link>
+                </li>
+              ))}
             </ul>
           )}
         </div>

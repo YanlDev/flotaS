@@ -11,6 +11,7 @@ const fontSans = Outfit({
 export const metadata: Metadata = {
   title: "Selcosi Flota",
   description: "Sistema de gestión de flota",
+  icons: { icon: "/LOGO-SELCOSI.ico" },
 };
 
 export default function RootLayout({

@@ -17,7 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { BottomNav } from "@/components/bottom-nav";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -121,10 +120,20 @@ export function Sidebar({ rol, nombre, sucursal }: Props) {
         {navContent}
       </aside>
 
-      {/* ── Mobile Bottom Nav ──────────────────────────── */}
-      <BottomNav rol={rol} onMenuClick={() => setMobileOpen(true)} />
+      {/* ── Mobile top bar ─────────────────────────────── */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center gap-3 px-4 h-14 border-b bg-card">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setMobileOpen(true)}
+          className="shrink-0"
+        >
+          <Menu size={20} />
+        </Button>
+        <p className="font-bold text-base text-primary leading-none">Selcosi Flota</p>
+      </div>
 
-      {/* ── Mobile drawer (Menú expandido) ─────────────── */}
+      {/* ── Mobile drawer ──────────────────────────────── */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-64 p-0">
           {navContent}

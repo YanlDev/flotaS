@@ -73,11 +73,43 @@ export default async function VehiculosPage({
       : Promise.resolve([]),
   ]);
 
+  // Alertas de mantenimiento por vehículo
+  const idsVehiculos = vehiculosRaw.map((v) => v.id);
+  const mantenimientosAlerta = idsVehiculos.length > 0
+    ? await prisma.mantenimiento.findMany({
+        where: {
+          vehiculoId: { in: idsVehiculos },
+          OR: [{ proximoKm: { not: null } }, { proximaFecha: { not: null } }],
+        },
+        select: { vehiculoId: true, proximoKm: true, proximaFecha: true },
+      })
+    : [];
+
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+
+  const alertaPorVehiculo = new Map<string, "vencido" | "proximo">();
+  for (const m of mantenimientosAlerta) {
+    const v = vehiculosRaw.find((x) => x.id === m.vehiculoId);
+    if (!v) continue;
+    if (m.proximoKm && v.kmActuales != null) {
+      const diff = m.proximoKm - v.kmActuales;
+      if (diff <= 0) { alertaPorVehiculo.set(v.id, "vencido"); continue; }
+      if (diff <= 1000 && alertaPorVehiculo.get(v.id) !== "vencido") alertaPorVehiculo.set(v.id, "proximo");
+    }
+    if (m.proximaFecha) {
+      const diffDias = Math.ceil((m.proximaFecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDias <= 0) { alertaPorVehiculo.set(v.id, "vencido"); continue; }
+      if (diffDias <= 30 && alertaPorVehiculo.get(v.id) !== "vencido") alertaPorVehiculo.set(v.id, "proximo");
+    }
+  }
+
   // Generar URLs firmadas para fotos frontales en paralelo
   const vehiculos = await Promise.all(
     vehiculosRaw.map(async (v) => ({
       ...v,
       fotoUrl: v.fotos[0]?.key ? await getSignedDownloadUrl(v.fotos[0].key, 7200) : null,
+      alertaMant: alertaPorVehiculo.get(v.id) ?? null,
     }))
   );
 
@@ -185,10 +217,15 @@ export default async function VehiculosPage({
                       )}
 
                       {/* Badge de estado — top right */}
-                      <div className="absolute top-2 right-2">
+                      <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
                         <Badge className={`${est.badge} text-[10px] px-1.5 py-0.5 shadow-sm`}>
                           {est.label}
                         </Badge>
+                        {v.alertaMant && (
+                          <Badge className={`text-[10px] px-1.5 py-0.5 shadow-sm border-0 ${v.alertaMant === "vencido" ? "bg-red-500 text-white" : "bg-amber-400 text-amber-900"}`}>
+                            {v.alertaMant === "vencido" ? "⚠ Mant. vencido" : "⚠ Mant. próximo"}
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Barra de estado — bottom */}

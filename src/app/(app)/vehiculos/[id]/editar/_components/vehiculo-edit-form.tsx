@@ -31,7 +31,7 @@ interface VehiculoEditable {
   motor: string | null;
   numeroMotor: string | null;
   numeroChasis: string | null;
-  numeroSerie: string | null;
+  rucPropietario: string | null;
   propietario: string | null;
   transmision: string | null;
   traccion: string | null;
@@ -84,8 +84,8 @@ export function VehiculoEditForm({ vehiculo, sucursales, conductoresDisponibles 
       motor: form.get("motor") || null,
       numeroMotor: form.get("numeroMotor") || null,
       numeroChasis: form.get("numeroChasis") || null,
-      numeroSerie: form.get("numeroSerie") || null,
       propietario: form.get("propietario") || null,
+      rucPropietario: form.get("rucPropietario") || null,
       transmision: transmision || null,
       traccion: traccion || null,
       combustible: combustible || null,
@@ -186,11 +186,11 @@ export function VehiculoEditForm({ vehiculo, sucursales, conductoresDisponibles 
           <Field label="Número de chasis">
             <Input name="numeroChasis" defaultValue={vehiculo.numeroChasis ?? ""} placeholder="Ej: 8AF..." />
           </Field>
-          <Field label="VIN / Número de serie">
-            <Input name="numeroSerie" defaultValue={vehiculo.numeroSerie ?? ""} placeholder="17 caracteres (opcional)" />
+          <Field label="Propietario">
+            <Input name="propietario" defaultValue={vehiculo.propietario ?? ""} placeholder="Nombre o razón social" />
           </Field>
-          <Field label="Propietario / RUC">
-            <Input name="propietario" defaultValue={vehiculo.propietario ?? ""} placeholder="20123456789" />
+          <Field label="RUC Propietario">
+            <Input name="rucPropietario" defaultValue={vehiculo.rucPropietario ?? ""} placeholder="20123456789" />
           </Field>
         </div>
       </Section>

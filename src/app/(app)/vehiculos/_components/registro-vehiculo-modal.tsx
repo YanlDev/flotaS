@@ -86,7 +86,7 @@ export function RegistroVehiculoModal({ sucursales, conductoresDisponibles, rol 
       motor: form.get("motor") || undefined,
       numeroMotor: form.get("numeroMotor") || undefined,
       numeroChasis: form.get("numeroChasis") || undefined,
-      numeroSerie: form.get("numeroSerie") || undefined,
+      rucPropietario: form.get("rucPropietario") || undefined,
       transmision: form.get("transmision") || undefined,
       traccion: form.get("traccion") || undefined,
       combustible: form.get("combustible") || undefined,
@@ -226,11 +226,11 @@ export function RegistroVehiculoModal({ sucursales, conductoresDisponibles, rol 
                   <Field label="Número de chasis">
                     <Input name="numeroChasis" placeholder="Ej: 8AF..." />
                   </Field>
-                  <Field label="VIN / Número de serie">
-                    <Input name="numeroSerie" placeholder="Opcional" />
+                  <Field label="Propietario">
+                    <Input name="propietario" placeholder="Nombre o razón social" />
                   </Field>
-                  <Field label="Propietario / RUC">
-                    <Input name="propietario" placeholder="20123456789" />
+                  <Field label="RUC Propietario">
+                    <Input name="rucPropietario" placeholder="20123456789" />
                   </Field>
                 </div>
               </Section>

@@ -204,7 +204,7 @@ model Vehiculo {
   motor          String?         // Descripción del motor (ej: Cummins ISB 6.7)
   numeroMotor    String?         @map("numero_motor")   // Nro motor de tarjeta
   numeroChasis   String?         @map("numero_chasis")  // Nro chasis de tarjeta
-  numeroSerie    String?         @map("numero_serie")   // VIN
+  rucPropietario String?         @map("ruc_propietario")
 
   // Mecánica
   transmision    TransmisionTipo?
