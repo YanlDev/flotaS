@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getProfile } from "@/lib/get-profile";
 import { getSignedDownloadUrl } from "@/lib/wasabi";
 import React from "react";
-import { renderToBuffer } from "@react-pdf/renderer";
+import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { CartillaPDF, type CartillaData } from "@/lib/pdf/cartilla-pdf";
 import path from "path";
 import fs from "fs";
@@ -235,7 +235,7 @@ export async function GET(
 
   // ── Renderizar PDF ─────────────────────────────────────────────────────────
 
-  const element = React.createElement(CartillaPDF, { data });
+  const element = React.createElement(CartillaPDF, { data }) as React.ReactElement<DocumentProps>;
   const buffer  = await renderToBuffer(element);
 
   const nombreArchivo = `cartilla-${vehiculo.placa.replace(/[^a-zA-Z0-9]/g, "-")}.pdf`;

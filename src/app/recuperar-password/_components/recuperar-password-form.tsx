@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +13,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export function LoginForm() {
-  const router = useRouter();
+export function RecuperarPasswordForm() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -27,21 +25,20 @@ export function LoginForm() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("/api/auth/recuperar-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email }),
       });
 
       const data = await response.json() as { error?: string };
 
       if (!response.ok) {
-        setError(data.error ?? "Error al iniciar sesión");
+        setError(data.error ?? "Error al enviar el correo");
         return;
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      setSuccess(true);
     } catch {
       setError("Error de conexión. Intenta de nuevo.");
     } finally {
@@ -49,11 +46,38 @@ export function LoginForm() {
     }
   }
 
+  if (success) {
+    return (
+      <Card className="w-full max-w-sm shadow-lg">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">Correo enviado</CardTitle>
+          <CardDescription>
+            Si existe una cuenta con ese correo, recibirás un enlace para
+            restablecer tu contraseña.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-center text-muted-foreground">
+            <Link
+              href="/login"
+              className="text-primary font-medium hover:underline"
+            >
+              Volver al inicio de sesión
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full max-w-sm shadow-lg">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Selcosi Flota</CardTitle>
-        <CardDescription>Ingresa tus credenciales para continuar</CardDescription>
+        <CardTitle className="text-2xl font-bold">Recuperar contraseña</CardTitle>
+        <CardDescription>
+          Ingresa tu correo y te enviaremos un enlace para restablecer tu
+          contraseña.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -71,40 +95,20 @@ export function LoginForm() {
             />
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Contraseña</Label>
-              <Link
-                href="/recuperar-password"
-                className="text-sm text-primary hover:underline"
-              >
-                ¿Olvidaste tu contraseña?
-              </Link>
-            </div>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
-              autoComplete="current-password"
-            />
-          </div>
-
           {error && (
             <p className="text-sm text-destructive text-center">{error}</p>
           )}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Ingresando..." : "Ingresar"}
+            {loading ? "Enviando..." : "Enviar enlace"}
           </Button>
 
           <p className="text-sm text-center text-muted-foreground">
-            ¿No tienes cuenta?{" "}
-            <Link href="/registro" className="text-primary font-medium hover:underline">
-              Regístrate
+            <Link
+              href="/login"
+              className="text-primary font-medium hover:underline"
+            >
+              Volver al inicio de sesión
             </Link>
           </p>
         </form>
