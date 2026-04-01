@@ -240,7 +240,7 @@ export async function GET(
 
   const nombreArchivo = `cartilla-${vehiculo.placa.replace(/[^a-zA-Z0-9]/g, "-")}.pdf`;
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type":        "application/pdf",
       "Content-Disposition": `attachment; filename="${nombreArchivo}"`,
