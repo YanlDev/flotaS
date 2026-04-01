@@ -295,6 +295,24 @@ export function MantenimientoPanel({ vehiculoId, kmActuales, puedeEditar }: Prop
                           alert={m.alertaKm}
                         />
                       )}
+                      {m.proximoKm && kmActuales != null && (
+                        <DetailRow
+                          label="Km actual"
+                          value={`${kmActuales.toLocaleString("es-PE")} km`}
+                        />
+                      )}
+                      {m.proximoKm && kmActuales != null && (() => {
+                        const faltan = m.proximoKm - kmActuales;
+                        const alert: "vencido" | "proximo" | "ok" =
+                          faltan <= 0 ? "vencido" : faltan <= 100 ? "vencido" : faltan <= 1000 ? "proximo" : "ok";
+                        return (
+                          <DetailRow
+                            label="Faltan"
+                            value={faltan <= 0 ? `Vencido por ${Math.abs(faltan).toLocaleString("es-PE")} km` : `${faltan.toLocaleString("es-PE")} km`}
+                            alert={alert}
+                          />
+                        );
+                      })()}
                       {m.proximaFecha && (
                         <DetailRow
                           label="Próxima fecha"

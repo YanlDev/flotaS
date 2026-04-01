@@ -120,6 +120,7 @@ export default async function DashboardPage() {
   type AlertaMant = {
     vehiculoId: string; placa: string; sucursal: string;
     categoria: string; tipo: "vencido" | "proximo"; detalle: string;
+    diffKm?: number;
   };
 
   const alertasMantMap = new Map<string, AlertaMant>();
@@ -136,7 +137,7 @@ export default async function DashboardPage() {
       }
       if (diff <= 1000) {
         if (!alertasMantMap.has(key))
-          alertasMantMap.set(key, { vehiculoId: v.id, placa: v.placa, sucursal: v.sucursal.nombre, categoria: m.categoria, tipo: "proximo", detalle: `${label}: faltan ${diff.toLocaleString("es-PE")} km` });
+          alertasMantMap.set(key, { vehiculoId: v.id, placa: v.placa, sucursal: v.sucursal.nombre, categoria: m.categoria, tipo: "proximo", detalle: `${label}: faltan ${diff.toLocaleString("es-PE")} km`, diffKm: diff });
       }
     }
     if (m.proximaFecha) {
@@ -271,26 +272,29 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <ul className="divide-y">
-              {alertasMant.slice(0, 8).map((a, i) => (
-                <li key={i}>
-                  <Link
-                    href={`/vehiculos/${a.vehiculoId}/mantenimientos`}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors"
-                  >
-                    <div className={`h-2 w-2 rounded-full shrink-0 ${a.tipo === "vencido" ? "bg-red-500" : "bg-amber-500"}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        <span className="font-mono">{a.placa}</span> — {a.detalle}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{a.sucursal}</p>
-                    </div>
-                    <span className={`text-xs font-semibold shrink-0 ${a.tipo === "vencido" ? "text-red-600" : "text-amber-600"}`}>
-                      {a.tipo === "vencido" ? "Vencido" : "Próximo"}
-                    </span>
-                    <ArrowRight size={13} className="text-muted-foreground shrink-0" />
-                  </Link>
-                </li>
-              ))}
+              {alertasMant.slice(0, 8).map((a, i) => {
+                const esCritico = a.tipo === "vencido" || (a.tipo === "proximo" && a.diffKm !== undefined && a.diffKm <= 100);
+                return (
+                  <li key={i}>
+                    <Link
+                      href={`/vehiculos/${a.vehiculoId}/mantenimientos`}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors"
+                    >
+                      <div className={`h-2 w-2 rounded-full shrink-0 ${esCritico ? "bg-red-500" : "bg-amber-500"}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium sm:truncate">
+                          <span className="font-mono">{a.placa}</span> — {a.detalle}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{a.sucursal}</p>
+                      </div>
+                      <span className={`text-xs font-semibold shrink-0 ${esCritico ? "text-red-600" : "text-amber-600"}`}>
+                        {a.tipo === "vencido" ? "Vencido" : "Próximo"}
+                      </span>
+                      <ArrowRight size={13} className="text-muted-foreground shrink-0" />
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

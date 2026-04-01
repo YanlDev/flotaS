@@ -33,6 +33,8 @@ export async function proxy(request: NextRequest) {
   const isPublic =
     pathname.startsWith("/login") ||
     pathname.startsWith("/registro") ||
+    pathname.startsWith("/recuperar-password") ||
+    pathname.startsWith("/actualizar-password") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api/auth/"); // APIs públicas de autenticación
 
