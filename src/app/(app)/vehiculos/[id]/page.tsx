@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { EstadoVehiculo } from "@/generated/prisma/client";
 import { EliminarVehiculoButton } from "./_components/eliminar-vehiculo-button";
+import { CartillaButton } from "./_components/cartilla-button";
 import { FotosPanel } from "./_components/fotos-panel";
 import {
   FileText, Gauge, Fuel, Users, MapPin, Wifi, WifiOff, Phone,
@@ -161,6 +162,7 @@ export default async function VehiculoDetallePage({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <CartillaButton vehiculoId={id} />
             {puedeEditar && (
               <Link href={`/vehiculos/${id}/editar`}>
                 <Button size="sm" variant="outline" className="gap-1.5">
