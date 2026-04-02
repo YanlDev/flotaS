@@ -77,6 +77,7 @@ export function InvitacionesClient({ invitaciones: init, sucursales }: Props) {
   const ROL_LABEL: Record<string, string> = {
     jefe_sucursal: "Jefe de Sucursal",
     visor: "Visor",
+    comercial: "Comercial",
   };
 
   return (
@@ -100,11 +101,12 @@ export function InvitacionesClient({ invitaciones: init, sucursales }: Props) {
                   <SelectTrigger><SelectValue placeholder="Selecciona un rol" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="jefe_sucursal">Jefe de Sucursal</SelectItem>
+                    <SelectItem value="comercial">Comercial</SelectItem>
                     <SelectItem value="visor">Visor (solo lectura)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {rol === "jefe_sucursal" && (
+              {(rol === "jefe_sucursal" || rol === "comercial") && (
                 <div className="space-y-1">
                   <Label>Sucursal *</Label>
                   <Select value={sucursalId} onValueChange={v => setSucursalId(v ?? "")} required>
