@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const rolesValidos: RolUsuario[] = ["jefe_sucursal", "visor"];
+  const rolesValidos: RolUsuario[] = ["jefe_sucursal", "comercial", "visor"];
   if (!rolesValidos.includes(rol)) {
     return NextResponse.json(
       { error: "Rol inválido" },
@@ -63,9 +63,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (rol === "jefe_sucursal" && !sucursalId) {
+  if ((rol === "jefe_sucursal" || rol === "comercial") && !sucursalId) {
     return NextResponse.json(
-      { error: "El jefe de sucursal debe tener una sucursal asignada" },
+      { error: "Este rol debe tener una sucursal asignada" },
       { status: 400 }
     );
   }
