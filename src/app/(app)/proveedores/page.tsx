@@ -3,13 +3,15 @@ import { getProfile } from "@/lib/get-profile";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Building2, SlidersHorizontal, MapPin, FileText, Car } from "lucide-react";
 import { RegistroProveedorModal } from "./_components/registro-proveedor-modal";
+import { TenenciaVehiculo } from "@/generated/prisma/client";
 
 export default async function ProveedoresPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sucursalId?: string; q?: string }>;
+  searchParams: Promise<{ sucursalId?: string; q?: string; tenencia?: string }>;
 }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");
@@ -18,7 +20,8 @@ export default async function ProveedoresPage({
     redirect("/dashboard");
   }
 
-  const { sucursalId, q } = await searchParams;
+  const { sucursalId, q, tenencia } = await searchParams;
+  const tenenciaFiltro = tenencia === "propio" || tenencia === "arrendado" ? tenencia as TenenciaVehiculo : undefined;
 
   const sucursalFiltro =
     profile.rol === "comercial"
@@ -36,6 +39,9 @@ export default async function ProveedoresPage({
             { razonSocial: { contains: q, mode: "insensitive" } },
             { dni: { contains: q, mode: "insensitive" } },
           ],
+        }),
+        ...(tenenciaFiltro && {
+          placas: { some: { deletedAt: null, tenencia: tenenciaFiltro } },
         }),
       },
       orderBy: { createdAt: "desc" },
@@ -72,6 +78,16 @@ export default async function ProveedoresPage({
           placeholder="RUC, razón social, DNI..."
           className="flex-1 min-w-[160px] text-sm bg-transparent outline-none placeholder:text-muted-foreground"
         />
+        <div className="h-5 w-px bg-border hidden sm:block" />
+        <select
+          name="tenencia"
+          defaultValue={tenencia ?? ""}
+          className="text-sm bg-transparent outline-none text-foreground pr-2"
+        >
+          <option value="">Todos los vehículos</option>
+          <option value="propio">Solo propietarios</option>
+          <option value="arrendado">Solo arrendatarios</option>
+        </select>
         {profile.rol === "admin" && (
           <>
             <div className="h-5 w-px bg-border hidden sm:block" />
@@ -89,6 +105,16 @@ export default async function ProveedoresPage({
         )}
         <Button type="submit" variant="outline" size="sm">Buscar</Button>
       </form>
+
+      {/* Badge de filtro activo */}
+      {tenenciaFiltro && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Filtrando por:</span>
+          <Badge className={tenenciaFiltro === "propio" ? "bg-emerald-100 text-emerald-700 border-0" : "bg-amber-100 text-amber-700 border-0"}>
+            {tenenciaFiltro === "propio" ? "Propietarios" : "Arrendatarios"}
+          </Badge>
+        </div>
+      )}
 
       {/* LISTADO */}
       {proveedores.length === 0 ? (
