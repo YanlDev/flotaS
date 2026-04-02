@@ -14,6 +14,7 @@ export default async function ConductoresPage({
 }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");
+  if (profile.rol === "comercial") redirect("/proveedores");
 
   const { sucursalId, q } = await searchParams;
 

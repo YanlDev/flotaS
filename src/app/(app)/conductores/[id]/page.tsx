@@ -18,6 +18,7 @@ export default async function ConductorDetallePage({
 }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");
+  if (profile.rol === "comercial") redirect("/proveedores");
 
   const { id } = await params;
 

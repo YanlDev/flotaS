@@ -26,6 +26,7 @@ function diasHasta(fecha: Date): number {
 export default async function DashboardPage() {
   const profile = await getProfile();
   if (!profile) redirect("/login");
+  if (profile.rol === "comercial") redirect("/proveedores");
 
   const sucursalFiltro =
     profile.rol === "jefe_sucursal" ? profile.sucursalId ?? undefined : undefined;

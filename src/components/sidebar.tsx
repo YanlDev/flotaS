@@ -13,6 +13,7 @@ import {
   Menu,
   ChevronRight,
   Building2,
+  Handshake,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -24,12 +25,15 @@ interface NavItem {
   href: string;
   icon: React.ReactNode;
   adminOnly?: boolean;
+  soloFlota?: boolean;   // oculto para rol comercial
+  soloComercial?: boolean; // visible para comercial y admin
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard",    href: "/dashboard",          icon: <LayoutDashboard size={18} /> },
-  { label: "Vehículos",    href: "/vehiculos",          icon: <Truck size={18} /> },
-  { label: "Conductores",  href: "/conductores",        icon: <UserRoundCheck size={18} /> },
+  { label: "Dashboard",    href: "/dashboard",          icon: <LayoutDashboard size={18} />, soloFlota: true },
+  { label: "Vehículos",    href: "/vehiculos",          icon: <Truck size={18} />,           soloFlota: true },
+  { label: "Conductores",  href: "/conductores",        icon: <UserRoundCheck size={18} />,  soloFlota: true },
+  { label: "Proveedores",  href: "/proveedores",        icon: <Handshake size={18} />,       soloComercial: true },
   { label: "Invitaciones", href: "/admin/invitaciones", icon: <Users size={18} />,    adminOnly: true },
   { label: "Usuarios",     href: "/admin/usuarios",     icon: <UserCog size={18} />,  adminOnly: true },
   { label: "Sucursales",   href: "/admin/sucursales",   icon: <Building2 size={18} />, adminOnly: true },
@@ -46,7 +50,12 @@ export function Sidebar({ rol, nombre, sucursal }: Props) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const items = NAV_ITEMS.filter((i) => !i.adminOnly || rol === "admin");
+  const items = NAV_ITEMS.filter((i) => {
+    if (i.adminOnly && rol !== "admin") return false;
+    if (i.soloFlota && rol === "comercial") return false;
+    if (i.soloComercial && rol !== "admin" && rol !== "comercial") return false;
+    return true;
+  });
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -94,7 +103,7 @@ export function Sidebar({ rol, nombre, sucursal }: Props) {
           <div className="text-xs flex-1 min-w-0">
             <p className="font-semibold text-sm truncate text-foreground">{nombre}</p>
             <p className="text-muted-foreground/80 mt-0.5 truncate">
-              {rol === "admin" ? "Administrador" : rol === "jefe_sucursal" ? "Jefe de Sucurs." : "Visor"}
+              {rol === "admin" ? "Administrador" : rol === "jefe_sucursal" ? "Jefe de Sucurs." : rol === "comercial" ? "Comercial" : "Visor"}
               {sucursal && ` · ${sucursal}`}
             </p>
           </div>

@@ -18,8 +18,16 @@ enum RolUsuario {
   admin
   jefe_sucursal
   visor
+  comercial
 
   @@map("rol_usuario")
+}
+
+enum TenenciaVehiculo {
+  propio
+  arrendado
+
+  @@map("tenencia_vehiculo")
 }
 
 enum EstadoVehiculo {
@@ -144,6 +152,7 @@ model Sucursal {
   invitaciones Invitacion[]
   vehiculos    Vehiculo[]
   conductores  Conductor[]
+  proveedores  Proveedor[]
 
   @@map("sucursales")
 }
@@ -167,6 +176,8 @@ model Profile {
   mantenimientosRegistrados Mantenimiento[]    @relation("MantenimientoRegistradoPor")
   fotosSubidas              FotoVehiculo[]     @relation("FotoSubidaPor")
   docsConductorSubidos      DocumentoConductor[] @relation("DocConductorSubidoPor")
+  proveedoresCreados        Proveedor[]          @relation("ProveedorCreadoPor")
+  placasProveedorCreadas    PlacaProveedor[]     @relation("PlacaProveedorCreadaPor")
 
   @@map("profiles")
 }
@@ -389,4 +400,57 @@ model DocumentoConductor {
 
   @@index([conductorId])
   @@map("documentos_conductores")
+}
+
+// =============================================
+// MÓDULO PROVEEDORES
+// =============================================
+
+model Proveedor {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ruc                String    @unique
+  razonSocial        String    @map("razon_social")
+  usuarioSunat       String    @map("usuario_sunat")
+  sol                String
+  dni                String
+  direccionConcesion String    @map("direccion_concesion")
+  fichaRucKey        String?   @map("ficha_ruc_key")
+  sucursalId         String?   @map("sucursal_id") @db.Uuid
+  createdBy          String?   @map("created_by") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz
+
+  sucursal Sucursal?       @relation(fields: [sucursalId], references: [id])
+  creador  Profile?        @relation("ProveedorCreadoPor", fields: [createdBy], references: [id])
+  placas   PlacaProveedor[]
+
+  @@index([sucursalId])
+  @@index([ruc])
+  @@map("proveedores")
+}
+
+model PlacaProveedor {
+  id                       String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  proveedorId              String           @map("proveedor_id") @db.Uuid
+  placa                    String
+  tenencia                 TenenciaVehiculo
+  licenciaConducirKey      String?          @map("licencia_conducir_key")
+  tarjetaPropiedadKey      String?          @map("tarjeta_propiedad_key")
+  contratoArrendamientoKey String?          @map("contrato_arrendamiento_key")
+  fechaCaducidadContrato   DateTime?        @map("fecha_caducidad_contrato") @db.Date
+  nombrePropietario        String?          @map("nombre_propietario")
+  nombreConductor          String?          @map("nombre_conductor")
+  numeroLicencia           String?          @map("numero_licencia")
+  enPlanilla               Boolean          @default(false) @map("en_planilla")
+  createdBy                String?          @map("created_by") @db.Uuid
+  createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt                DateTime?        @map("deleted_at") @db.Timestamptz
+
+  proveedor Proveedor @relation(fields: [proveedorId], references: [id], onDelete: Cascade)
+  creador   Profile?  @relation("PlacaProveedorCreadaPor", fields: [createdBy], references: [id])
+
+  @@index([proveedorId])
+  @@map("placas_proveedor")
 }

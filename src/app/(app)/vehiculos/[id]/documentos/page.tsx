@@ -13,6 +13,7 @@ export default async function DocumentosPage({
 }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");
+  if (profile.rol === "comercial") redirect("/proveedores");
 
   const { id } = await params;
 

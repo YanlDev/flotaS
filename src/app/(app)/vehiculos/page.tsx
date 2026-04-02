@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { EstadoVehiculo } from "@/generated/prisma/client";
 import { Car, MapPin, Gauge, SlidersHorizontal, ImageOff } from "lucide-react";
 import { RegistroVehiculoModal } from "./_components/registro-vehiculo-modal";
+import { ExportarExcelButton } from "./_components/exportar-excel-button";
 
 // ─── UI maps ─────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ export default async function VehiculosPage({
 }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");
+  if (profile.rol === "comercial") redirect("/proveedores");
 
   const { sucursalId, estado, q } = await searchParams;
 
@@ -137,9 +139,12 @@ export default async function VehiculosPage({
               {counts.fuera > 0 && <span className="ml-2 text-red-600">· {counts.fuera} fuera de servicio</span>}
             </p>
           </div>
-          {puedeCrear && (
-            <RegistroVehiculoModal sucursales={sucursales} conductoresDisponibles={conductoresDisponibles} rol={profile.rol} />
-          )}
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <ExportarExcelButton q={q} estado={estado} sucursalId={sucursalFiltro} />
+            {puedeCrear && (
+              <RegistroVehiculoModal sucursales={sucursales} conductoresDisponibles={conductoresDisponibles} rol={profile.rol} />
+            )}
+          </div>
         </div>
 
         {/* ── FILTROS ─────────────────────────────────────────── */}
