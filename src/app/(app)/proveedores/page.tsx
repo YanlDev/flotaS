@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, SlidersHorizontal, MapPin, FileText, Car } from "lucide-react";
+import { Building2, SlidersHorizontal, MapPin, FileText, Car, Eye } from "lucide-react";
 import { RegistroProveedorModal } from "./_components/registro-proveedor-modal";
+import { EditarProveedorModal } from "./_components/editar-proveedor-modal";
+import { EliminarProveedorButton } from "./_components/eliminar-proveedor-button";
 import { TenenciaVehiculo } from "@/generated/prisma/client";
 
 export default async function ProveedoresPage({
@@ -130,52 +132,106 @@ export default async function ProveedoresPage({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {proveedores.map((p) => (
-            <Link key={p.id} href={`/proveedores/${p.id}`}>
-              <article className="group rounded-2xl border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer p-5 space-y-4">
-
-                {/* Cabecera */}
-                <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-primary/10 p-2.5 shrink-0">
-                    <Building2 size={20} className="text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-sm leading-tight truncate group-hover:text-primary transition-colors">
-                      {p.razonSocial}
-                    </p>
-                    <p className="text-xs text-muted-foreground font-mono mt-0.5">{p.ruc}</p>
-                  </div>
-                </div>
-
-                {/* Info */}
-                <div className="space-y-1.5 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <FileText size={12} className="shrink-0" />
-                    <span className="truncate">DNI: {p.dni}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 truncate">
-                    <MapPin size={12} className="shrink-0" />
-                    <span className="truncate">{p.direccionConcesion}</span>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="border-t pt-3 flex items-center justify-between">
-                  {p.sucursal ? (
-                    <span className="text-xs text-muted-foreground">{p.sucursal.nombre}</span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground/50">Sin sucursal</span>
+        <>
+          {/* ── TABLA — desktop ─────────────────────────────── */}
+          <div className="hidden md:block rounded-xl border bg-card overflow-hidden shadow-sm">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 border-b">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">RUC</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Razón Social</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">DNI</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground max-w-[220px]">Dirección Concesión</th>
+                  {profile.rol === "admin" && (
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Sucursal</th>
                   )}
-                  <div className="flex items-center gap-1 text-xs font-medium text-primary">
-                    <Car size={12} />
-                    {p._count.placas} {p._count.placas === 1 ? "placa" : "placas"}
+                  <th className="text-center px-4 py-3 font-medium text-muted-foreground">Placas</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {proveedores.map((p) => (
+                  <tr key={p.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.ruc}</td>
+                    <td className="px-4 py-3 font-medium max-w-[200px]">
+                      <span className="truncate block">{p.razonSocial}</span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.dni}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground max-w-[220px]">
+                      <span className="truncate block">{p.direccionConcesion}</span>
+                    </td>
+                    {profile.rol === "admin" && (
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {p.sucursal?.nombre ?? <span className="text-muted-foreground/40">—</span>}
+                      </td>
+                    )}
+                    <td className="px-4 py-3 text-center">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                        <Car size={11} />
+                        {p._count.placas}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link href={`/proveedores/${p.id}`}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10">
+                            <Eye size={14} />
+                          </Button>
+                        </Link>
+                        <EditarProveedorModal proveedor={p} variant="icon" />
+                        {profile.rol === "admin" && (
+                          <EliminarProveedorButton proveedorId={p.id} razonSocial={p.razonSocial} />
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── CARDS — mobile ──────────────────────────────── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
+            {proveedores.map((p) => (
+              <Link key={p.id} href={`/proveedores/${p.id}`}>
+                <article className="group rounded-2xl border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer p-5 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-xl bg-primary/10 p-2.5 shrink-0">
+                      <Building2 size={20} className="text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm leading-tight truncate group-hover:text-primary transition-colors">
+                        {p.razonSocial}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-mono mt-0.5">{p.ruc}</p>
+                    </div>
                   </div>
-                </div>
-              </article>
-            </Link>
-          ))}
-        </div>
+                  <div className="space-y-1.5 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <FileText size={12} className="shrink-0" />
+                      <span className="truncate">DNI: {p.dni}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <MapPin size={12} className="shrink-0" />
+                      <span className="truncate">{p.direccionConcesion}</span>
+                    </div>
+                  </div>
+                  <div className="border-t pt-3 flex items-center justify-between">
+                    {p.sucursal ? (
+                      <span className="text-xs text-muted-foreground">{p.sucursal.nombre}</span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/50">Sin sucursal</span>
+                    )}
+                    <div className="flex items-center gap-1 text-xs font-medium text-primary">
+                      <Car size={12} />
+                      {p._count.placas} {p._count.placas === 1 ? "placa" : "placas"}
+                    </div>
+                  </div>
+                </article>
+              </Link>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

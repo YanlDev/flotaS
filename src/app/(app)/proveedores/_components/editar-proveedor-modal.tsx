@@ -24,9 +24,10 @@ interface ProveedorEditable {
 
 interface Props {
   proveedor: ProveedorEditable;
+  variant?: "button" | "icon";
 }
 
-export function EditarProveedorModal({ proveedor }: Props) {
+export function EditarProveedorModal({ proveedor, variant = "button" }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -63,10 +64,16 @@ export function EditarProveedorModal({ proveedor }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className="gap-2 shrink-0 inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-3">
-        <Pencil size={14} />
-        Editar
-      </DialogTrigger>
+      {variant === "icon" ? (
+        <DialogTrigger className="inline-flex items-center justify-center rounded-md h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors focus-visible:outline-none">
+          <Pencil size={14} />
+        </DialogTrigger>
+      ) : (
+        <DialogTrigger className="gap-2 shrink-0 inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-3">
+          <Pencil size={14} />
+          Editar
+        </DialogTrigger>
+      )}
 
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
