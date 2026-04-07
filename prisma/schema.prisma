@@ -75,6 +75,13 @@ enum CombustibleTipo {
   @@map("combustible_tipo")
 }
 
+enum EstadoCarga {
+  pendiente
+  revisado
+
+  @@map("estado_carga")
+}
+
 enum CategoriaLicencia {
   A1
   A2a
@@ -173,6 +180,7 @@ model Profile {
   documentosSubidos   DocumentoVehicular[] @relation("SubidoPor")
   conductoresCreados  Conductor[]  @relation("ConductorCreadoPor")
   cargasRegistradas         CargaCombustible[] @relation("CargaRegistradaPor")
+  cargasRevisadas           CargaCombustible[] @relation("CargaRevisadaPor")
   mantenimientosRegistrados Mantenimiento[]    @relation("MantenimientoRegistradoPor")
   fotosSubidas              FotoVehiculo[]     @relation("FotoSubidaPor")
   docsConductorSubidos      DocumentoConductor[] @relation("DocConductorSubidoPor")
@@ -308,38 +316,41 @@ model DocumentoVehicular {
 }
 
 model CargaCombustible {
-  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  vehiculoId      String          @map("vehiculo_id") @db.Uuid
-  conductorId     String?         @map("conductor_id") @db.Uuid
-  fecha           DateTime        @db.Date
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vehiculoId      String       @map("vehiculo_id") @db.Uuid
+  conductorId     String?      @map("conductor_id") @db.Uuid
+  fecha           DateTime     @db.Date
+  estado          EstadoCarga  @default(pendiente)
 
-  // Medición en galones (estándar Perú)
-  galones         Decimal         @db.Decimal(8, 3)
-  precioPorGalon  Decimal         @map("precio_por_galon") @db.Decimal(8, 2)
-  totalSoles      Decimal         @map("total_soles") @db.Decimal(10, 2)
-  tipoCombustible CombustibleTipo @map("tipo_combustible")
+  // Rellenos al revisar
+  galones         Decimal?        @db.Decimal(8, 3)
+  precioPorGalon  Decimal?        @map("precio_por_galon") @db.Decimal(8, 2)
+  totalSoles      Decimal?        @map("total_soles") @db.Decimal(10, 2)
+  tipoCombustible CombustibleTipo? @map("tipo_combustible")
+  odometroKm      Int?            @map("odometro_km")
 
-  // Odómetro para calcular rendimiento
-  odometroKm      Int             @map("odometro_km")
-
-  // Dónde se cargó
-  estacion        String?         // nombre del grifo
+  // Dónde se cargó (opcional)
+  estacion        String?
   ciudad          String?
 
   // Evidencia (Wasabi keys)
-  comprobanteKey  String?         @map("comprobante_key")
-  odometroFotoKey String?         @map("odometro_foto_key")
+  comprobanteKey  String?      @map("comprobante_key")
+  odometroFotoKey String?      @map("odometro_foto_key")
 
-  registradoPor   String?         @map("registrado_por") @db.Uuid
+  registradoPor   String?      @map("registrado_por") @db.Uuid
+  revisadoPor     String?      @map("revisado_por") @db.Uuid
+  revisadoAt      DateTime?    @map("revisado_at") @db.Timestamptz
   notas           String?
-  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz
 
   vehiculo    Vehiculo   @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
   conductor   Conductor? @relation(fields: [conductorId], references: [id])
   registrador Profile?   @relation("CargaRegistradaPor", fields: [registradoPor], references: [id])
+  revisor     Profile?   @relation("CargaRevisadaPor", fields: [revisadoPor], references: [id])
 
   @@index([vehiculoId])
   @@index([fecha])
+  @@index([estado])
   @@map("cargas_combustible")
 }
 

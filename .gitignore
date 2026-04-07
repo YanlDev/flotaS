@@ -27,7 +27,8 @@
 
 # ─── Testing & E2E ───────────────────────────────────────────────
 /coverage
-/e2e
+/e2e/.auth/
+/e2e/fixtures/
 /test-results/
 /playwright-report/
 

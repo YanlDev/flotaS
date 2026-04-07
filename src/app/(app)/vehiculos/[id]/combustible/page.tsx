@@ -27,16 +27,6 @@ export default async function CombustiblePage({
     redirect("/vehiculos");
   }
 
-  // Conductores activos de la misma sucursal para el selector del formulario
-  const conductores = await prisma.conductor.findMany({
-    where: {
-      activo: true,
-      ...(profile.rol !== "admin" && { sucursalId: vehiculo.sucursalId }),
-    },
-    select: { id: true, nombreCompleto: true },
-    orderBy: { nombreCompleto: "asc" },
-  });
-
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -61,9 +51,9 @@ export default async function CombustiblePage({
       <CombustiblePanel
         vehiculoId={id}
         tipoCombustibleVehiculo={vehiculo.combustible ?? "diesel"}
-        conductores={conductores}
-        puedeEditar={profile.rol !== "visor"}
-        esAdmin={profile.rol === "admin"}
+        puedeCargar={profile.rol === "admin" || profile.rol === "jefe_sucursal"}
+        puedeRevisar={profile.rol === "admin"}
+        puedeEliminar={profile.rol === "admin"}
       />
     </div>
   );

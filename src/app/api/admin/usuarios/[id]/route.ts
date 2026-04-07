@@ -74,39 +74,38 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const profile = await getProfile();
-  if (!profile || profile.rol !== "admin") {
-    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  try {
+    const profile = await getProfile();
+    if (!profile || profile.rol !== "admin") {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    const { id } = await params;
+
+    if (id === profile.id) {
+      return NextResponse.json({ error: "No puedes eliminarte a ti mismo" }, { status: 400 });
+    }
+
+    const target = await prisma.profile.findUnique({ where: { id } });
+    if (!target) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+
+    // Borrar de Supabase Auth → el trigger de Supabase elimina el profile automáticamente.
+    // Si ya no existe en auth, ignorar el error "not found".
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    if (authError && !authError.message.toLowerCase().includes("not found")) {
+      return NextResponse.json(
+        { error: "Error al eliminar sesión: " + authError.message },
+        { status: 500 }
+      );
+    }
+
+    // Si Supabase no tiene trigger configurado para eliminar el profile,
+    // lo eliminamos manualmente (ignora si ya fue borrado por el trigger).
+    await prisma.profile.delete({ where: { id } }).catch(() => {});
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[DELETE /api/admin/usuarios/[id]]", err);
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
   }
-
-  const { id } = await params;
-
-  if (id === profile.id) {
-    return NextResponse.json({ error: "No puedes eliminarte a ti mismo" }, { status: 400 });
-  }
-
-  const target = await prisma.profile.findUnique({ where: { id } });
-  if (!target) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
-
-  // 1. Primero marcar el profile como inactivo en Prisma
-  //    (antes de borrar de auth, porque Supabase tiene un trigger
-  //     que borra profiles automáticamente al borrar auth.users)
-  await prisma.profile.update({
-    where: { id },
-    data: { activo: false, sucursalId: null },
-  });
-
-  // 2. Luego borrar de Supabase Auth → bloquea acceso al sistema
-  //    Si ya no existe en auth (edge case), ignorar el error
-  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
-  if (authError && !authError.message.toLowerCase().includes("not found")) {
-    // Revertir si algo salió mal
-    await prisma.profile.update({
-      where: { id },
-      data: { activo: target.activo, sucursalId: target.sucursalId },
-    }).catch(() => {});
-    return NextResponse.json({ error: "Error al eliminar sesión: " + authError.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true });
 }
