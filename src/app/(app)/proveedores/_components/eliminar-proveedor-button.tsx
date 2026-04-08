@@ -36,8 +36,8 @@ export function EliminarProveedorButton({ proveedorId, razonSocial }: Props) {
         return;
       }
       setOpen(false);
-      router.push("/proveedores");
       router.refresh();
+      router.push("/proveedores");
     } catch {
       alert("Error de red");
       setLoading(false);

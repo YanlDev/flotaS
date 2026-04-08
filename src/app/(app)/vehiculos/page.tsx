@@ -42,6 +42,7 @@ export default async function VehiculosPage({
   const [vehiculosRaw, sucursales, conductoresDisponibles] = await Promise.all([
     prisma.vehiculo.findMany({
       where: {
+        deletedAt: null,
         ...(sucursalFiltro && { sucursalId: sucursalFiltro }),
         ...(estado && { estado: estado as EstadoVehiculo }),
         ...(q && {

@@ -3,8 +3,8 @@ import { getProfile } from "@/lib/get-profile";
 import { uploadFile, getSignedDownloadUrl } from "@/lib/wasabi";
 import { NextRequest, NextResponse } from "next/server";
 
-const MIME_PERMITIDOS = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
-const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+const MIME_PERMITIDOS = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "application/pdf"];
+const MAX_BYTES = 30 * 1024 * 1024; // 30 MB
 
 // GET — historial de cargas del vehículo
 export async function GET(
@@ -135,18 +135,18 @@ export async function POST(
 
   // Validar comprobante
   if (!MIME_PERMITIDOS.includes(comprobanteFile.type)) {
-    return NextResponse.json({ error: "Comprobante: solo JPG, PNG, WEBP o PDF" }, { status: 400 });
+    return NextResponse.json({ error: "Comprobante: solo JPG, PNG, WEBP, HEIC o PDF" }, { status: 400 });
   }
   if (comprobanteFile.size > MAX_BYTES) {
-    return NextResponse.json({ error: "Comprobante: máximo 10 MB" }, { status: 400 });
+    return NextResponse.json({ error: "Comprobante: máximo 30 MB" }, { status: 400 });
   }
 
   // Validar foto odómetro
   if (!MIME_PERMITIDOS.includes(odometroFotoFile.type)) {
-    return NextResponse.json({ error: "Foto odómetro: solo JPG, PNG o WEBP" }, { status: 400 });
+    return NextResponse.json({ error: "Foto odómetro: solo JPG, PNG, WEBP o HEIC" }, { status: 400 });
   }
   if (odometroFotoFile.size > MAX_BYTES) {
-    return NextResponse.json({ error: "Foto odómetro: máximo 10 MB" }, { status: 400 });
+    return NextResponse.json({ error: "Foto odómetro: máximo 30 MB" }, { status: 400 });
   }
 
   // Subir fotos a Wasabi

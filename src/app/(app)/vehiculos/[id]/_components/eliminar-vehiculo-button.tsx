@@ -41,8 +41,8 @@ export function EliminarVehiculoButton({ vehiculoId, placa }: Props) {
       }
 
       setOpen(false);
-      router.push("/vehiculos");
       router.refresh();
+      router.push("/vehiculos");
     } catch {
       setError("Error de conexión. Intenta de nuevo.");
     } finally {

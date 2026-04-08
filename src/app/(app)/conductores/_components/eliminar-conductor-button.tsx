@@ -36,8 +36,8 @@ export function EliminarConductorButton({ conductorId, nombre }: Props) {
         return;
       }
       setOpen(false);
-      router.push("/conductores");
       router.refresh();
+      router.push("/conductores");
     } catch {
       alert("Error de red");
       setLoading(false);
